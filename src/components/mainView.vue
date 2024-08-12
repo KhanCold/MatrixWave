@@ -14,16 +14,19 @@ export default {
       layer: null,//Konva图层
       stage: null,//Konva画布
       strokeWidth: 1,//线条宽度
+      stageX:100,//画布的起始点
+      stageY:440,//画布的位置
        //生成数据集参数
-      routStep:7,//路径最长值
-      maxNumber:300,//路径最大数量
+      routStep:5,//路径最长值
+      spaceBetween:10,//元素之间的留白距离
+      maxNumber: 200,//路径最大数量
       dataA: [],//数据集A
       dataB: [],//数据集B
       pageNames:['homePage','aboutPage','contactPage','productPage','servicePage',
       'blogPage','newsPage','loginPage','registerPage','searchPage','cartPage','checkoutPage'
-      ,'paymentPage','thankyouPage','errorPage'],//页面名称
+      ,'paymentPage','thankyouPage','dropOff'],//页面名称
       colorArr: [
-        '#670a67', '#810c81', '#9a3d9a', '#a755a7', '#c086c0', '#edf2fa',
+        '#670a67', '#810c81', '#9a3d9a', '#a755a7', '#c086c0', '#ffffff',
         '#FFE0A3', '#FFC168', '#FF9D2D', '#FFA500', '#FF7800'
       ],
       pageColor: [//页面颜色
@@ -31,7 +34,7 @@ export default {
         '#6A3D9A', '#FF7F00', '#B15928', '#B2DF8A', '#FB9A99',
         '#988ED5', '#FFD92F', '#8C564B', '#A6CEE3', '#000000'
       ],
-      nodeWidth: 30,//节点的最大宽度，按照节点的average值来计算
+      nodeWidth: 60,//节点的最大宽度，按照节点的average值来计算
       nodeHeight: 15,//节点的高度 但是文字size等的高度也和此一样，不然会有错位
       nodeMaxVolume: 0,//节点的最大流量
       nodeMinVolume: 0,//节点的最小流量
@@ -46,7 +49,7 @@ export default {
       LinkDataB: [],
       nodeDataShow: [],//用于可视化的节点数据，数据格式：[[{nodeAVolume:1,nodeBVolume:3,average:2,diff:1, diffPercent:0.1},...],,...]
                         //每个元素代表一个节点的流量数据，包含nodeAVolume,nodeBVolume,average,diff,diffPercent
-      linkDataShow: [],//用于可视化的link数据，数据格式：[[[{source:1,target:2,LinkAvolume:3, LinkBvolume:2, diff:1,diffPercent:0.1}]]]
+      linkDataShow: [],//用于可视化的link数据，数据格式：[[[{source:1,target:2,LinkAvolume:3, LinkBvolume:2, average, diff:1,diffPercent:0.1}]]]
     }
   },
   computed: {
@@ -71,12 +74,13 @@ export default {
       for (let i = 0; i < this.maxNumber; i++) {
         let route = [];//一个路径
         for (let j = 0; j < this.routStep; j++) {
-          //每次有30%概率结束循环，控制路径长度随机
-          if (Math.random() < 0.3) {break;}
-          let pageIndex = Math.floor(Math.random() * this.pageNames.length);//随机选择页面
+          //每次有概率结束循环，控制路径长度随机
+          if (Math.random() < 0.11) {break;}
+          let pageIndex = Math.floor(Math.random() * (this.pageNames.length - 1));//随机选择页面
           route.push(this.pageNames[pageIndex]);
       }
       if(route.length > 1)//路径长度大于1才加入数据集
+        route.push('dropOff');
         dataSet.push(route);
       }
       // console.log('createDataSets', JSON.stringify(dataSet));
@@ -115,45 +119,31 @@ export default {
       //原始数据格式：[['page7', 'page1', 'page8', 'page5', 'page4', 'page5', 'page1'],['page9', 'page2'], ...]
       //每一个数组代表了一个序列,序列节点为数组中的元素如'page7'，序列最长为this.routeStep，节点编号序列为this.pageNames:['page1', 'page2',...]
       //每一条link是由当前节点和后面的节点构成的，如'page7'->'page1'，就是一个link
-      //将原始数据转换为邻接矩阵[[[1,2,3...]]]，其中内次的第一层数组的长度为this.routstep，代表这每一个step的邻接矩阵
-      //第二层数组第1行第2列代表第1个节点和第2个节点的相互连接的次数，以此类推link[i][j]表示节点i和节点j的相互连接情况，
-      //每一个矩阵的形状为[this.pageNames.length,this.pageNames.length + 1]，最后一列代表dropout节点的连接情况
+      //将原始数据转换为邻接矩阵[[[1,2,3...]]]，其中包含this.routStep个矩阵，每一个矩阵代表着每一个step的邻接矩阵
+      //第二层数组代表的就是第n层的邻接矩阵。代表着第n个节点和第n+1个节点的相互连接情况
+      //第1行第2列代表第1个节点和第2个节点的相互连接的次数，以此类推link[i][j]表示节点i和节点j的相互连接情况
+      //每一个矩阵的形状为[this.pageNames.length,this.pageNames.length + 1]，最后一列代表dropout节点的连接情况,如第一个序列,'page1'->dropout，就是link[0][this.pageNames.length] += 1
+      
 
-      // 确定矩阵的大小，根据pageNames的长度
-      const matrixSize = this.pageNames.length;
-      let linkData = new Array(matrixSize).fill(0).map(() => new Array(matrixSize + 1).fill(0));
+      // 初始化邻接矩阵数组，每个矩阵的大小为 [pageNames.length, pageNames.length + 1]
+      let linkData = new Array(this.routeStep);
+      for (let i = 0; i < this.routStep; i++) {
+        linkData[i] = new Array(this.pageNames.length + 1).fill(0).map(() => new Array(this.pageNames.length + 1).fill(0));
+      }
 
-      // 遍历原始数据
-      originalData.forEach((sequence) => {
-        // 遍历序列中的每个页面
-        sequence.forEach((page, pageIndex) => {
-          // 检查是否是最后一个页面
-          if (pageIndex < sequence.length - 1) {
-            // 找到当前页面和下一个页面的索引
-            const currentPageIndex = this.pageNames.indexOf(page);
-            const nextPageIndex = this.pageNames.indexOf(sequence[pageIndex + 1]);
-
-            // 如果找到索引，则增加邻接矩阵中的相应元素
-            if (currentPageIndex !== -1 && nextPageIndex !== -1) {
-              linkData[currentPageIndex][nextPageIndex]++;
-            }
+      // 遍历原始数据，构建邻接矩阵
+      originalData.forEach(sequence => {
+        sequence.forEach((currentPage, index) => {
+          if (index < sequence.length - 1) {// 如果不是最后一个节点，则连接到下一个节点
+            const nextPage = sequence[index + 1];
+            linkData[index][this.pageNames.indexOf(currentPage)][this.pageNames.indexOf(nextPage)]++;
           }
         });
       });
 
-      // 处理dropout节点的连接情况，这里假设dropout节点是最后一个节点
-      // 遍历原始数据，统计每个节点到dropout节点的连接次数
-      originalData.forEach((sequence) => {
-        // 找到当前序列最后一个页面的索引
-        const lastIndex = this.pageNames.indexOf(sequence[sequence.length - 1]);
-        // 增加到dropout节点的连接次数
-        linkData[lastIndex][matrixSize]++;
-      });
-
       return linkData;
-      
     },
-    getNodeAndLinkData(){//获取节点和link数据
+    getNodeAndLinkData(){//获取节点和link数据 调用多个函数
       this.nodeDataA = this.transformNodeData(this.dataA);
       this.nodeDataB = this.transformNodeData(this.dataB);
       this.LinkDataA = this.transformLinkData(this.dataA);
@@ -207,48 +197,38 @@ export default {
           this.nodeDataShow = result;
     },
     getCompareAndAverageLinkData(linkDataA, linkDataB){//比较两个link数据集，计算平均值和差值 并得到volume的最大值和最小值
-      //link的数据格式[[[1,2,3...]]]邻接矩阵，第1行第2列代表第1个节点和第2个节点的相互连接情况，以此类推link[i][j]表示节点i和节点j的相互连接情况
-      //矩阵的形状为[this.pageNames.length,this.pageNames.length + 1]，最后一列代表dropout节点的连接情况
-      //转换为数据格式：[[[{source:1,target:2,LinkAvolume:3, LinkBvolume:2, diff:1,diffPercent:0.1}]]]link的流量数据
-
+      //link的数据格式[[[1,2,3...]]],其中包含了this.routStep个邻接矩阵，矩阵中第1行第2列代表第1个节点和第2个节点的相互连接情况，以此类推link[i][j]表示节点i和节点j的相互连接情况
+      //邻接矩阵的形状为[this.pageNames.length,this.pageNames.length + 1]，最后一列代表dropout节点的连接情况
+      //转换为数据格式：[[[{source:1,target:2,LinkAvolume:3, LinkBvolume:2, average, diff:1,diffPercent:0.1}]]]link的流量数据
 
       let result = [];
-
-      // 遍历矩阵中的每个元素
-      for (let i = 0; i < this.pageNames.length; i++) {
-        let lineResult = [];
-        for (let j = 0; j < this.pageNames.length + 1; j++) {
-          
-          const linkA = linkDataA[i][j];
-          const linkB = linkDataB[i][j];
-
-          // 计算差值、平均值和差值百分比
-          const diff = linkA - linkB;
-          const average = (linkA + linkB) / 2;
-          const diffPercent = (diff / average) || 0;
-
-          // 将结果添加到结果数组中
-          lineResult.push({
-            source: i,
-            target: j,
-            LinkAvolume: linkA,
-            LinkBvolume: linkB,
-            diff: diff,
-            diffPercent: diffPercent,
-            average: average
-          });
+      for(let i = 0; i < this.routStep; i++){
+        let stepLinkDataA = linkDataA[i];
+        let stepLinkDataB = linkDataB[i];
+        let stepLinkDataShow = [];
+        for(let j = 0; j < this.pageNames.length; j++){
+          let lineData = [];
+          for(let k = 0; k < this.pageNames.length + 1; k++){
+            let linkA = stepLinkDataA[j][k];
+            let linkB = stepLinkDataB[j][k];
+            let linkData = {
+              source: j,
+              target: k,
+              LinkAvolume: linkA,
+              LinkBvolume: linkB,
+              average: (linkA + linkB) / 2,
+              diff: linkA - linkB,
+              diffPercent: (linkA - linkB) / ((linkA + linkB) / 2) || 0
+            };
+            lineData.push(linkData);
+          }
+          stepLinkDataShow.push(lineData);
         }
-        result.push(lineResult);
+        result.push(stepLinkDataShow);
       }
-
+      this.linkMaxVolume = Math.max(...result.flat().flat().map(item => Math.max(item.LinkAvolume, item.LinkBvolume)));
+      this.linkMinVolume = Math.min(...result.flat().flat().map(item => Math.min(item.LinkAvolume, item.LinkBvolume)));
       
-      // 计算volume的最大值和最小值
-      const maxVolume = Math.max(...result.map(link => Math.max(link.LinkAvolume, link.LinkBvolume)));
-      const minVolume = Math.min(...result.map(link => Math.min(link.LinkAvolume, link.LinkBvolume)));
-
-      this.linkMaxVolume = maxVolume;
-      this.linkMinVolume = minVolume;
-
       this.linkDataShow = result;
     },
     createGraph() {//创建图层
@@ -261,130 +241,194 @@ export default {
 
       this.layer = new Konva.Layer();
     },
-    drawGraph() {//绘制图形
+    getColorIndex(diffPercent) {
+      // 确保diffPercent在-1到1之间
+      diffPercent = Math.max(-1, Math.min(1, diffPercent));
 
-      let firstStepData = this.nodeDataShow[0];
-      //画笔位置
-      let pen = {x: 0, y: 0}
-
-      let group = new Konva.Group({//用于统一操作 这个group用于装一个step
-        x: 120,
-        y: 40,
-        // rotation: 315,
-        draggable: true,
-      });
-
-      //绘制节点
-      for(let i = 0; i < this.pageNames.length; i++){
-        
-        let node = firstStepData[i];
-
-        //node 数据格式：{nodeAVolume:1,nodeBVolume:3,average:2,diff:1, diffPercent:0.1}
-        //矩形颜色根据diffPercent设置颜色,-1到1之间，对应了11个颜色
-        let colorIndex = Math.floor((node.diffPercent + 1) / 2 * 10);
-        let nodeWidth = node.average / this.nodeMaxVolume * this.nodeWidth;
-        let rect = new Konva.Rect({
-        x: pen.x + (this.nodeWidth - nodeWidth) / 2,//居中
-        y: pen.y,
-        width: nodeWidth,
-        height: this.nodeHeight,
-        fill: this.colorArr[colorIndex],//根据diffPercent设置颜色,-1到1之间，对应了11个颜色
-        stroke: 'black',
-        strokeWidth: this.strokeWidth, 
-      });
-
-      pen.y += this.nodeHeight + this.strokeWidth / 2;
-
-      group.add(rect);
+      // 计算在-1到0之间的索引
+      let index = (diffPercent + 1) / 2 * 5; // 将-1到0映射到0到5
+      if (diffPercent === 0) {
+        index = 5; // 0对应中间的颜色
+      } else if (diffPercent > 0) {
+        index = 6 + (diffPercent / 1) * 5; // 将0到1映射到6到10
       }
 
-      pen.x += this.nodeWidth + 10;
+      // 返回颜色数组中的相应颜色
+      return this.colorArr[Math.floor(index)];
+    },
+    drawNode(nodeStepData, pen, stepGroup) {//绘制节点
+      for(let i = 0; i < this.pageNames.length; i++){
+          
+          let node = nodeStepData[i];
+
+          //node 数据格式：{nodeAVolume:1,nodeBVolume:3,average:2,diff:1, diffPercent:0.1}
+          let nodeWidth = node.average / this.nodeMaxVolume * this.nodeWidth;
+          let rect = new Konva.Rect({
+          x: pen.x + (this.nodeWidth - nodeWidth) / 2,//居中
+          y: pen.y,
+          width: nodeWidth,
+          height: this.nodeHeight,
+          fill: this.getColorIndex(node.diffPercent),//根据diffPercent设置颜色,-1到1之间，对应了11个颜色
+          stroke: 'black',
+          strokeWidth: this.strokeWidth, 
+        });
+
+        pen.y += this.nodeHeight + this.strokeWidth / 2;
+
+        stepGroup.add(rect);
+        }
+    },
+    drawRect(pen, lw, lh, stepGroup){//绘制虚线框
+
+      pen.x += this.nodeWidth + this.spaceBetween;
       pen.y = 0;
-      //绘制矩形虚线框
-      let lw = (this.nodeHeight + this.strokeWidth / 2) * (this.pageNames.length + 1);
-      let lh = (this.nodeHeight + this.strokeWidth / 2) * this.pageNames.length; //+ this.strokeWidth / 2是因为边也有宽度
 
       let rect = new Konva.Rect({ 
-        x: pen.x,
-        y: pen.y,
-        width: lw,
-        height: lh,
-        fill: 'transparent',
-        stroke: 'black',
-        strokeWidth: this.strokeWidth,
-        dash: [5, 5]
-      });
-      group.add(rect);
-
-      //绘制dropout的line，黑色直线
-
-      //绘制page的标识，用圆圈标识，颜色按照在pageNames中的顺序设置
-      pen.x += lw + 10;
-      pen.y = this.nodeHeight / 2;
-      for(let i = 0; i < this.pageNames.length; i++){
-
-        let circle = new Konva.Circle({
           x: pen.x,
           y: pen.y,
-          radius: this.nodeHeight / 2,
-          fill: this.pageColor[i],
+          width: lw,
+          height: lh,
+          fill: 'transparent',
+          stroke: 'black',
+          strokeWidth: this.strokeWidth,
+          dash: [5, 5]
         });
-        pen.y += this.nodeHeight + this.strokeWidth / 2;
-        
-        group.add(circle);
-      }
+        stepGroup.add(rect);
+    },
+    drawPageID(pen, lw, lh, stepGroup){//绘制page的标识 包括圆圈和文字
+        //绘制page的标识，用圆圈标识，颜色按照在pageNames中的顺序设置 
+        pen.x += lw + this.spaceBetween;
+        pen.y = this.nodeHeight / 2;
+        for(let i = 0; i < this.pageNames.length; i++){
 
-      //绘制page的标识，文字标识 这里的坑是文件的大小必须与ndoeHeight相等，否则会对不上
-      pen.x += 10;
-      pen.y = 0;
-      for(let i = 0; i < this.pageNames.length; i++){
-
-        let text = new Konva.Text({
-          x: pen.x,
-          y: pen.y,
-          text: this.pageNames[i],
-          fontSize: this.nodeHeight,
-          fill: 'black',
-        });
-        pen.y += this.nodeHeight + this.strokeWidth / 2;
-        
-        group.add(text);
-      }
-
-
-      //绘制link外面的大矩形，也就是diff,size固定，颜色代表差异大小
-      firstStepData = this.linkDataShow[0];
-      console.log(firstStepData);
-      // pen.x = this.nodeWidth + 10;
-      // pen.y = 0;
-      // for(let i = 0; i < this.pageNames.length; i++){
-      //   for(let j = 0; j < this.pageNames.length + 1; j++){
-      
-      //     let link = firstStepData[i][j];
+          let circle = new Konva.Circle({
+            x: pen.x,
+            y: pen.y,
+            radius: this.nodeHeight / 2,
+            fill: this.pageColor[i],
+          });
+          pen.y += this.nodeHeight + this.strokeWidth / 2;
           
-      //     let rect = new Konva.Rect({
-      //       x: pen.x,
-      //       y: pen.y,
-      //       width: this.nodeHeight + this.strokeWidth / 2,
-      //       height: this.nodeHeight + this.strokeWidth / 2,
-      //       fill: this.colorArr[Math.floor((link.diffPercent + 1) / 2 * 10)],
-      //     });
-      //     pen.x += this.nodeHeight;
-      //     group.add(rect);
-      //   }
-      //   pen.y += this.nodeWidth;
-      //   pen.x = 0;
-      // }
+          stepGroup.add(circle);
+        }
+
+        //绘制page的标识，文字标识 这里的坑是文件的大小必须与ndoeHeight相等，否则会对不上
+        pen.x += this.spaceBetween;
+        pen.y = 0;
+        for(let i = 0; i < this.pageNames.length; i++){
+
+          let text = new Konva.Text({
+            x: pen.x,
+            y: pen.y,
+            text: this.pageNames[i],
+            fontSize: this.nodeHeight,
+            fill: 'black',
+          });
+          pen.y += this.nodeHeight + this.strokeWidth / 2;
+          
+          stepGroup.add(text);
+        }
+    },
+    drawLink(linkStepData, pen, stepGroup) {//绘制link
+      pen.y = 0; 
+        for(let i = 0; i < this.pageNames.length; i++){
+          pen.x = this.nodeWidth + this.spaceBetween;
+          for(let j = 0; j < this.pageNames.length; j++){
+
+            // 绘制link外面的大矩形，也就是diff,size固定，颜色代表差异大小
+            let outerRect = new Konva.Rect({
+              x: pen.x,
+              y: pen.y,
+              width: this.nodeHeight,
+              height: this.nodeHeight,
+              stroke: 'transparent',
+              strokeWidth: this.strokeWidth, 
+              fill: this.getColorIndex(linkStepData[i][j].diffPercent),
+            });
+            //绘制link里面的黑色小矩形，正方形的size代表两个数据集的平均链接量
+
+            let widthMax = this.nodeHeight - this.strokeWidth;//里面小矩形的最大宽度
+
+            let width = linkStepData[i][j].average / this.linkMaxVolume * widthMax;
+            let innerRect = new Konva.Rect({
+              x: pen.x + (this.nodeHeight - width) / 2,
+              y: pen.y + (this.nodeHeight - width) / 2,
+              width: width,
+              height: width,
+              stroke: 'black',
+              strokeWidth: this.strokeWidth,
+              fill: 'black',
+            });
+
+            pen.x += this.nodeHeight + this.strokeWidth / 2;
+            stepGroup.add(outerRect);
+            stepGroup.add(innerRect);
+          }
+          pen.y += this.nodeHeight + this.strokeWidth / 2;
+        
+      }
+    },
+    drawGraph() {//绘制图形
+
+      let group = new Konva.Group({//用于统一操作 这个group用于装所有的step
+        x: this.stageX,
+        y: this.stageY,
+        draggable: true,
+
+      });
+
+      let xOffset = 0;//每个step之间的x偏移量，用于z字形排列
+      let yOffset = 0;//每个step之间的y偏移量，用于z字形排列
+      // let k = 1;//用于向上或向下移动
+      for(let i = 0; i < this.routStep; i++) {//绘制不同的step
+
+        //虚线框的长度和宽度
+        // let lw = (this.nodeHeight + this.strokeWidth / 2) * (this.pageNames.length + 1);
+        let lh = (this.nodeHeight + this.strokeWidth / 2) * this.pageNames.length; //+ this.strokeWidth / 2是因为边也有宽度
+
+        let stepBetweenX = this.nodeWidth + this.spaceBetween + lh;//两个step之间的距离
+        let stepBetweenY = lh;
+        let lineX = Math.sqrt(stepBetweenX * stepBetweenX + stepBetweenY * stepBetweenY);//x上的直线距离
+        
+        if(i % 2){ xOffset += lineX; yOffset -= 50;}
+        else {
+          xOffset += 50;
+          yOffset += 50;//不知道为啥要加50，但是加了就刚好对齐了
+        }
 
 
+        let nodeStepData = this.nodeDataShow[i];
+        
+        //画笔位置
+        let pen = {x: 0, y: 0}
+    
+        let stepGroup = new Konva.Group({//用于统一操作 这个group用于装一个step
+          x: xOffset,
+          y: yOffset,
+          rotation: i % 2 === 0 ? -45 : 45,//z字形
+          // draggable: true,
+        });
+
+        //绘制节点
+        this.drawNode(nodeStepData, pen, stepGroup);
 
 
+      
+        //绘制矩形虚线框
+        this.drawRect(pen, lh,lh, stepGroup);
 
+        //绘制dropout的line，黑色直线
 
+        //绘制page的标识包括圆圈和文字
+        this.drawPageID(pen, lh, lh, stepGroup);
 
+        //绘制link，包含两个矩形
+        let linkStepData = this.linkDataShow[i];
+        this.drawLink(linkStepData, pen, stepGroup);
 
-
-
+        
+        group.add(stepGroup);
+      }
 
 
       this.layer.add(group);
@@ -395,10 +439,12 @@ export default {
 
 
     logFunction(){//测试用函数
-      // console.log('nodeDataA:',JSON.stringify(this.nodeDataA));
+      console.log('nodeDataA:',JSON.stringify(this.nodeDataA));
       // console.log('LinkDataA:',JSON.stringify(this.LinkDataA));
       // console.log('nodeDataShow:',JSON.stringify(this.nodeDataShow));
       // console.log('linkDataShow:',JSON.stringify(this.linkDataShow));
+      // console.log('nodeMaxVolume:',this.nodeMaxVolume);
+      // console.log('linkMaxVolume:',this.linkMaxVolume);
     },
 
   }
