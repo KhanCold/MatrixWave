@@ -322,7 +322,7 @@ export default {
       pen.y = 0; 
         for(let i = 0; i < this.pageNames.length; i++){
           pen.x = this.nodeWidth + this.spaceBetween;
-          for(let j = 0; j < this.pageNames.length; j++){
+          for(let j = this.pageNames.length - 1; j >= 0; j--){//反向是为了z字形
 
             // 绘制link外面的大矩形，也就是diff,size固定，颜色代表差异大小
             let outerRect = new Konva.Rect({
