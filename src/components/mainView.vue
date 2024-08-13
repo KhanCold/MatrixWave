@@ -8,7 +8,7 @@
 import Konva from 'konva';
 
 export default {
-  props:['node','link','step', 'routeStep'],
+  props:['node','link','step', 'routeStep', 'pageNames', 'colorArr', 'pageColor', 'nodeWidth', 'nodeHeight'],
   data() {
     return {
       layer: null,//Konva图层
@@ -16,26 +16,13 @@ export default {
       strokeWidth: 1,//线条宽度
       stageX:100,//画布的起始点
       stageY:440,//画布的位置
-       //生成数据集参数
+      //生成数据集参数
       routStep:5,//路径最长值
       spaceBetween:10,//元素之间的留白距离
       maxNumber: 200,//路径最大数量
       dataA: [],//数据集A
       dataB: [],//数据集B
-      pageNames:['homePage','aboutPage','contactPage','productPage','servicePage',
-      'blogPage','newsPage','loginPage','registerPage','searchPage','cartPage','checkoutPage'
-      ,'paymentPage','thankyouPage','dropOff'],//页面名称
-      colorArr: [
-        '#670a67', '#810c81', '#9a3d9a', '#a755a7', '#c086c0', '#ffffff',
-        '#FFE0A3', '#FFC168', '#FF9D2D', '#FFA500', '#FF7800'
-      ],
-      pageColor: [//页面颜色
-        '#008080', '#1F78B4', '#E66100', '#33A02C', '#FFA500',
-        '#6A3D9A', '#FF7F00', '#B15928', '#B2DF8A', '#FB9A99',
-        '#988ED5', '#FFD92F', '#8C564B', '#A6CEE3', '#000000'
-      ],
-      nodeWidth: 60,//节点的最大宽度，按照节点的average值来计算
-      nodeHeight: 15,//节点的高度 但是文字size等的高度也和此一样，不然会有错位
+      
       nodeMaxVolume: 0,//节点的最大流量
       nodeMinVolume: 0,//节点的最小流量
       linkMaxVolume: 0,//link的最大流量
@@ -52,9 +39,12 @@ export default {
       linkDataShow: [],//用于可视化的link数据，数据格式：[[[{source:1,target:2,LinkAvolume:3, LinkBvolume:2, average, diff:1,diffPercent:0.1}]]]
     }
   },
-  computed: {
-
+  created() {
   },
+  watch:{
+    linkMaxVolume(value){ this.$bus.$emit('getLinkMaxVolume', value);},
+    nodeMaxVolume(value){ this.$bus.$emit('getnodeMaxVolume', value);},
+  },  
   mounted() {
     this.getDataSets();//创建数据集
     this.getNodeAndLinkData();//获取节点和link数据
@@ -193,7 +183,6 @@ export default {
           // 计算最大值和最小值，这里假设最大值和最小值是针对所有step的
           this.nodeMaxVolume = Math.max(...result.flat().map(item => Math.max(item.nodeAVolume, item.nodeBVolume)));
           this.nodeMinVolume = Math.min(...result.flat().map(item => Math.min(item.nodeAVolume, item.nodeBVolume)));
-
           this.nodeDataShow = result;
     },
     getCompareAndAverageLinkData(linkDataA, linkDataB){//比较两个link数据集，计算平均值和差值 并得到volume的最大值和最小值
@@ -434,12 +423,8 @@ export default {
       this.layer.add(group);
       this.stage.add(this.layer);
     },
-
-
-
-
     logFunction(){//测试用函数
-      console.log('nodeDataA:',JSON.stringify(this.nodeDataA));
+      // console.log('nodeDataA:',JSON.stringify(this.nodeDataA));
       // console.log('LinkDataA:',JSON.stringify(this.LinkDataA));
       // console.log('nodeDataShow:',JSON.stringify(this.nodeDataShow));
       // console.log('linkDataShow:',JSON.stringify(this.linkDataShow));

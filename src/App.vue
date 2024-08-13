@@ -1,8 +1,10 @@
 <template>
   <div id="app">
-    <SetView id="set-view" :dataSet1="dataSet1" :dataSet2="dataSet2" :node="node" :link="link" :step="step"></SetView>
-    <MainView id="main-view" :node="node" :link="link" :step="step" ></MainView>
-    <boardView id="show-view"></boardView>
+
+    <SetView id="set-view" :dataSet1="dataSet1" :dataSet2="dataSet2" :nodeFilter="nodeFilter" :linkFilter="linkFilter" :stepFilter="stepFilter"></SetView>
+    <MainView id="main-view" :nodeFilter="nodeFilter" :linkFilter="linkFilter" :stepFilter="stepFilter" :pageNames="pageNames" :colorArr="colorArr" :pageColor="pageColor" :nodeWidth="nodeWidth" :nodeHeight="nodeHeight"></MainView>
+    <boardView id="show-view" :pageNames="pageNames" :colorArr="colorArr" :pageColor="pageColor" :nodeWidth="nodeWidth" :nodeHeight="nodeHeight"></boardView>
+    
   </div>
 </template>
 
@@ -24,9 +26,23 @@ export default {
     return {
       dataSet1:'dataA',//数据集标签，用于标识
       dataSet2:'dataB',
-      node:10,//节点流量筛选
-      link:10,//边流量筛选
-      step:[0,6],//迭代次数
+      nodeFilter:10,//节点流量筛选
+      linkFilter:10,//边流量筛选
+      stepFilter:[0,6],//迭代次数
+      pageNames:['homePage','aboutPage','contactPage','productPage','servicePage',
+      'blogPage','newsPage','loginPage','registerPage','searchPage','cartPage','checkoutPage'
+      ,'paymentPage','thankyouPage','dropOff'],//页面名称
+      colorArr: [
+        '#670a67', '#810c81', '#9a3d9a', '#a755a7', '#c086c0', '#ffffff',
+        '#FFE0A3', '#FFC168', '#FF9D2D', '#FFA500', '#FF7800'
+      ],
+      pageColor: [//页面颜色
+        '#008080', '#1F78B4', '#E66100', '#33A02C', '#FFA500',
+        '#6A3D9A', '#FF7F00', '#B15928', '#B2DF8A', '#FB9A99',
+        '#988ED5', '#FFD92F', '#8C564B', '#A6CEE3', '#000000'
+      ],
+      nodeWidth: 60,//节点的最大宽度，按照节点的average值来计算
+      nodeHeight: 15,//节点的高度 但是文字size等的高度也和此一样，不然会有错位
     };
   },
   computed: {

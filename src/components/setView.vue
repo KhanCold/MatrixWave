@@ -32,12 +32,12 @@
         return {
             localDataSet1: this.dataSet1,
             localDataSet2: this.dataSet2,
-            localNode: this.node,
-            localLink: this.link,
-            localStep: this.step
+            localNode: this.nodeFilter,
+            localLink: this.linkFilter,
+            localStep: this.stepFilter
         }
     },
-    props:['dataSet1','dataSet2', 'node', 'link', 'step'],
+    props:['dataSet1','dataSet2', 'nodeFilter', 'linkFilter', 'stepFilter'],
     methods:{
         changeSelect(index, value){
             this.$bus.$emit('changeDataSet', index, value)
