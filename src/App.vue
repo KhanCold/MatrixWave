@@ -28,7 +28,7 @@ export default {
       dataSet2:'dataB',
       nodeFilter:10,//节点流量筛选
       linkFilter:10,//边流量筛选
-      stepFilter:[0,6],//迭代次数
+      stepFilter:[0,4],//迭代次数
       pageNames:['homePage','aboutPage','contactPage','productPage','servicePage',
       'blogPage','newsPage','loginPage','registerPage','searchPage','cartPage','checkoutPage'
       ,'paymentPage','thankyouPage','dropOff'],//页面名称
@@ -57,14 +57,24 @@ export default {
         this.dataSet2 = value;
       }
     },
-
-
   },
   mounted(){
     this.$bus.$on('changeDataSet', this.changeDataSet);
+    this.$bus.$on('changeNodeFilter', (value) => {
+      this.nodeFilter = value;
+    });
+    this.$bus.$on('changeLinkFilter', (value) => {
+      this.linkFilter = value;
+    });
+    this.$bus.$on('changeStepFilter', (value) => {
+      this.stepFilter = value;
+    });
   },
   beforeDestroy() {
       this.$bus.$off('changeDataSet')
+      this.$bus.$off('changeNodeFilter')
+      this.$bus.$off('changeLinkFilter')
+      this.$bus.$off('changeStepFilter')
   },
 }
 </script>

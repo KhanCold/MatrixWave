@@ -8,14 +8,14 @@
 import Konva from 'konva';
 
 export default {
-  props:['node','link','step', 'routeStep', 'pageNames', 'colorArr', 'pageColor', 'nodeWidth', 'nodeHeight'],
+  props:['nodeFilter','linkFilter','stepFilter','pageNames', 'colorArr', 'pageColor', 'nodeWidth', 'nodeHeight'],
   data() {
     return {
       layer: null,//Konva图层
       stage: null,//Konva画布
       strokeWidth: 1,//线条宽度
-      stageX:100,//画布的起始点
-      stageY:440,//画布的位置
+      stageX:0,//画布的起始点
+      stageY:400,//画布的位置
       //生成数据集参数
       routStep:5,//路径最长值
       spaceBetween:10,//元素之间的留白距离
@@ -44,6 +44,8 @@ export default {
   watch:{
     linkMaxVolume(value){ this.$bus.$emit('getLinkMaxVolume', value);},
     nodeMaxVolume(value){ this.$bus.$emit('getnodeMaxVolume', value);},
+    stepFilter(){this.createGraph(); this.drawGraph();},
+    nodeFilter(){this.createGraph(); this.drawGraph();},
   },  
   mounted() {
     this.getDataSets();//创建数据集
@@ -369,7 +371,10 @@ export default {
       let xOffset = 0;//每个step之间的x偏移量，用于z字形排列
       let yOffset = 0;//每个step之间的y偏移量，用于z字形排列
       // let k = 1;//用于向上或向下移动
-      for(let i = 0; i < this.routStep; i++) {//绘制不同的step
+
+      console.log('this.localStepFilter:',JSON.stringify(this.localStepFilter));
+
+      for(let i = this.stepFilter[0]; i < Math.min(this.stepFilter[1], this.routStep); i++) {//绘制不同的step 起始根据filter来确定
 
         //虚线框的长度和宽度
         // let lw = (this.nodeHeight + this.strokeWidth / 2) * (this.pageNames.length + 1);

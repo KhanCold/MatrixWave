@@ -12,15 +12,15 @@
       <h1>Filters</h1>
       <div class="block">
         <h2>Node</h2>
-        <el-slider v-model="localNode" show-input :max="20"></el-slider>
+        <el-slider v-model="localNodeFilter" show-input :max="20"></el-slider>
       </div>
       <div class="block">
         <h2>Link</h2>
-        <el-slider v-model="localLink" show-input :max="20"></el-slider>
+        <el-slider v-model="localLinkFilter" show-input :max="20"></el-slider>
       </div>
       <div class="block">
         <h2>Step</h2>
-        <el-slider v-model="localStep" range :max="20"></el-slider>
+        <el-slider v-model="localStepFilter" range :max="20"></el-slider>
       </div>
       <h1>Visulization</h1>
     </div>
@@ -32,9 +32,9 @@
         return {
             localDataSet1: this.dataSet1,
             localDataSet2: this.dataSet2,
-            localNode: this.nodeFilter,
-            localLink: this.linkFilter,
-            localStep: this.stepFilter
+            localNodeFilter: this.nodeFilter,
+            localLinkFilter: this.linkFilter,
+            localStepFilter: this.stepFilter
         }
     },
     props:['dataSet1','dataSet2', 'nodeFilter', 'linkFilter', 'stepFilter'],
@@ -49,7 +49,17 @@
     },
     dataSet2(newVal) {
       this.localDataSet2 = newVal;
-    }}
+    },
+    localNodeFilter(newVal) {
+      this.$bus.$emit('changeNodeFilter', newVal)
+    },
+    localLinkFilter(newVal) {
+      this.$bus.$emit('changeLinkFilter', newVal) 
+    },
+    localStepFilter(newVal) {
+      this.$bus.$emit('changeStepFilter', newVal)
+    }
+  }
   }
   </script>
   
