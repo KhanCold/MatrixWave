@@ -385,7 +385,6 @@ export default {
           yOffset += 50;//不知道为啥要加50，但是加了就刚好对齐了
         }
 
-
         let nodeStepData = this.nodeDataShow[i];
         
         //画笔位置
@@ -401,8 +400,6 @@ export default {
         //绘制节点
         this.drawNode(nodeStepData, pen, stepGroup);
 
-
-      
         //绘制矩形虚线框
         this.drawRect(pen, lh,lh, stepGroup);
 
