@@ -12,11 +12,11 @@
       <h1>Filters</h1>
       <div class="block">
         <h2>Node</h2>
-        <el-slider v-model="localNodeFilter" show-input :max="20"></el-slider>
+        <el-slider v-model="localNodeFilter" show-input :max="nodeFilterMax"></el-slider>
       </div>
       <div class="block">
         <h2>Link</h2>
-        <el-slider v-model="localLinkFilter" show-input :max="20"></el-slider>
+        <el-slider v-model="localLinkFilter" show-input :max="linkFilterMax"></el-slider>
       </div>
       <div class="block">
         <h2>Step</h2>
@@ -27,6 +27,7 @@
   </template>
   
   <script>
+
   export default {
     data() {
         return {
@@ -34,8 +35,25 @@
             localDataSet2: this.dataSet2,
             localNodeFilter: this.nodeFilter,
             localLinkFilter: this.linkFilter,
-            localStepFilter: this.stepFilter
+            localStepFilter: this.stepFilter,
+            nodeFilterMax: 50,
+            linkFilterMax: 200,
         }
+    },
+    mounted() {
+      this.$bus.$on('getLinkMaxVolume', (value) => {
+      // console.log('app:getLinkMaxVolume', value);
+      this.localLinkFilter = value;
+      this.linkFilterMax = value;
+    });
+    this.$bus.$on('getNodeMaxVolume', (value) => {
+      this.localNodeFilter = value;
+      this.nodeFilterMax = value;
+    });
+    },
+    beforeDestroy() {
+      this.$bus.$off('getLinkMaxVolume');
+      this.$bus.$off('getNodeMaxVolume');
     },
     props:['dataSet1','dataSet2', 'nodeFilter', 'linkFilter', 'stepFilter'],
     methods:{
