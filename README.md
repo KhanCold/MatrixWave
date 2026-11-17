@@ -1,8 +1,8 @@
 # matrixwave
 
-A simple example of using konva to duplicate the paper: MatrixWave: Visual Comparison of Event Sequence Data
+A small Konva demo based on [MatrixWave: Visual Comparison of Event Sequence Data](https://doi.org/10.1145/2702123.2702419) (CHI 2015).
 
-![alt text](1.jpg)
+![Screenshot of the MatrixWave demo](1.jpg)
 
 ## Project setup
 
